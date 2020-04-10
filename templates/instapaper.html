@@ -24,16 +24,29 @@
             class="btn btn-sm btn-primary btn-block">刷新</button>
     </form>
 
+
     <div>
         {% for a in list %}
-        <div class="card text-left" style="background-color: rgb(241, 241, 243);">
+        <div class="card text-left" style="background-color: rgb(241, 241, 243);margin-top: 10px;margin-left: 2px;">
             <div class="card-body">
-                <a h6 class="card-title" href="{{ a.url }}" target="_blank">{{ a.title }}</a>
-                <button type="submit" style="padding-top: 0px;"
-                    class="btn btn-outline-info btn-sm"><small>X</small></button>
-                <p class="card-text"><small>{{ a.url }}</small></p>
+                <form class="form-group" method="POST">
+                    <a h6 class="card-title" href="{{ a.url }}" target="_blank">{{ a.title }}</a>
+                    <input class="form-control" name="id" id="bmid" hidden value="{{ a.bookmark_id }}"
+                        aria-describedby="bookmarkid" placeholder=""></input>
+                    <button type="submit" name="Action" value="Archive" style="padding:0px 1px;"
+                        class="btn btn-outline-info btn-sm"><small>Archive</small></button>
+                    <button type="submit" name="Action" value="Delete" style="padding:0px 1px;"
+                        class="btn btn-outline-danger btn-sm"><small>Delete</small></button>
+                    <p class="card-text"><small>{{ a.url }}</small></p>
+                </form>
             </div>
         </div>
+
+        <script>
+
+        </script>
+
+
         {% endfor %}
     </div>
 
