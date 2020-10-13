@@ -1,7 +1,6 @@
 # Instapaper ChromeExtension
 
 > Note: beta version, Python program running on Aliyun ECS, just for me.
->   Su600.cn:1000
 > 
 
 ## Based on great job by rsgalloway https://github.com/rsgalloway/instapaper
