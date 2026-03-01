@@ -9,62 +9,75 @@
     收藏后自动通过IFTTT同步到OneNote快速笔记里，并默认存档，从列表中删除
 '''
 
-from flask import Flask, render_template, request, redirect, url_for
-from flask_bootstrap import Bootstrap
+import os
+import sys
+from flask import Flask, render_template, request, redirect, url_for, flash
 import instapaper
 
-I = instapaper.Instapaper(
-    "d3e10f3296b84857aff6ce62c84d7ec1", "bc408b9151394b498b997e0bc4675b02")
-I.login("su600@live.com", "greedisgood1")
+CONSUMER_KEY = os.environ.get("INSTAPAPER_CONSUMER_KEY", "")
+CONSUMER_SECRET = os.environ.get("INSTAPAPER_CONSUMER_SECRET", "")
+USERNAME = os.environ.get("INSTAPAPER_USERNAME", "")
+PASSWORD = os.environ.get("INSTAPAPER_PASSWORD", "")
+FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "")
 
-# b = instapaper.Bookmark(I, {"url": "http://su600.cn"})
-# b.save()
+_missing = [
+    name for name, val in [
+        ("INSTAPAPER_CONSUMER_KEY", CONSUMER_KEY),
+        ("INSTAPAPER_CONSUMER_SECRET", CONSUMER_SECRET),
+        ("INSTAPAPER_USERNAME", USERNAME),
+        ("INSTAPAPER_PASSWORD", PASSWORD),
+        ("FLASK_SECRET_KEY", FLASK_SECRET_KEY),
+    ] if not val
+]
+if _missing:
+    print(f"ERROR: Missing required environment variables: {', '.join(_missing)}", file=sys.stderr)
+    sys.exit(1)
 
-# # 读取10条记录
-# c = I.bookmarks(limit=10)
-# for a in c:
-#     print(a.title)
-#     print(a.url)
-
-# # 存档最新一条
-# d = I.bookmarks(limit=1)
-# s=d[0].bookmark_id
-# print(s)
-# d = instapaper.Bookmark(I, {'bookmark_id': s})
-# d.archive()
-# # 如何区分不同标签的删除按钮 submit todo
+I = instapaper.Instapaper(CONSUMER_KEY, CONSUMER_SECRET)
+I.login(USERNAME, PASSWORD)
 
 app = Flask(__name__)
+app.secret_key = FLASK_SECRET_KEY
+
+BOOKMARK_LIMIT = 30
+
+ACTION_LABELS = {
+    "Archive": "存档",
+    "Star": "收藏并存档",
+    "Delete": "删除",
+}
 
 
 @app.route("/", methods=['GET', 'POST'])
-def home():  # 打开和刷新列表
-    # c = I.bookmarks(limit=10)
-    if request.method == "GET":
-        # print("sssssssssssssssssss")
-        c = I.bookmarks(limit=30)
+def home():
+    if request.method == "POST":
+        form = request.form.to_dict()
+        bookmark_id = form.get("id")
+        action = form.get("Action")
+        if bookmark_id and action in ACTION_LABELS:
+            try:
+                bm = instapaper.Bookmark(I, {'bookmark_id': bookmark_id})
+                if action == "Archive":
+                    bm.archive()
+                elif action == "Star":
+                    bm.star()
+                    bm.archive()
+                elif action == "Delete":
+                    bm.delete()
+                flash(f"✅ 操作成功：{ACTION_LABELS[action]}", "success")
+            except Exception as e:
+                flash(f"❌ 操作失败：{e}", "danger")
+        # Post/Redirect/Get：避免刷新时重复提交表单
+        return redirect(url_for("home"))
 
-    if request.method == "POST":  # 存档该条记录（非删除）
+    try:
+        bookmarks = I.bookmarks(limit=BOOKMARK_LIMIT)
+    except Exception as e:
+        flash(f"❌ 获取书签失败：{e}", "danger")
+        bookmarks = []
 
-        a = request.form.to_dict()
-        s = a["id"]
-        d = instapaper.Bookmark(I, {'bookmark_id': s})
-        # print(s)
-        # print(a["Action"])
-        if a["Action"] == "Archive":
-            # print("存档")
-            d.archive()
-            c = I.bookmarks(limit=30)
-        if a["Action"] == "Star":
-            # print("收藏")
-            d.star()
-            d.archive()
-            c = I.bookmarks(limit=30)
-        if a["Action"] == "Delete":
-            # print("删除")
-            d.delete()
-            c = I.bookmarks(limit=30)
-    return render_template("instapaper.html", list=c)
+    return render_template("instapaper.html", list=bookmarks)
 
 
-app.run("0.0.0.0", port=1000)
+if __name__ == "__main__":
+    app.run("0.0.0.0", port=1000)
