@@ -9,11 +9,19 @@
     收藏后自动通过IFTTT同步到OneNote快速笔记里，并默认存档，从列表中删除
 '''
 
+import logging
 import os
 import sys
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_wtf.csrf import CSRFProtect
 import instapaper
 
+# Required environment variables:
+#   INSTAPAPER_CONSUMER_KEY    – Instapaper OAuth consumer key
+#   INSTAPAPER_CONSUMER_SECRET – Instapaper OAuth consumer secret
+#   INSTAPAPER_USERNAME        – Instapaper account email
+#   INSTAPAPER_PASSWORD        – Instapaper account password
+#   FLASK_SECRET_KEY           – Secret key for Flask sessions and CSRF tokens
 CONSUMER_KEY = os.environ.get("INSTAPAPER_CONSUMER_KEY", "")
 CONSUMER_SECRET = os.environ.get("INSTAPAPER_CONSUMER_SECRET", "")
 USERNAME = os.environ.get("INSTAPAPER_USERNAME", "")
@@ -34,11 +42,16 @@ if _missing:
     print(f"ERROR: {message}", file=sys.stderr)
     raise RuntimeError(message)
 
-I = instapaper.Instapaper(CONSUMER_KEY, CONSUMER_SECRET)
-I.login(USERNAME, PASSWORD)
+try:
+    I = instapaper.Instapaper(CONSUMER_KEY, CONSUMER_SECRET)
+    I.login(USERNAME, PASSWORD)
+except Exception as exc:
+    print(f"ERROR: Failed to authenticate with Instapaper: {exc}", file=sys.stderr)
+    raise RuntimeError("Instapaper authentication failed at startup") from exc
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
+csrf = CSRFProtect(app)
 
 BOOKMARK_LIMIT = 30
 
@@ -67,14 +80,16 @@ def home():
                     bm.delete()
                 flash(f"✅ 操作成功：{ACTION_LABELS[action]}", "success")
             except Exception as e:
-                flash(f"❌ 操作失败：{e}", "danger")
+                logging.exception("Instapaper action '%s' failed for bookmark %s", action, bookmark_id)
+                flash("❌ 操作失败，请稍后重试", "danger")
         # Post/Redirect/Get：避免刷新时重复提交表单
         return redirect(url_for("home"))
 
     try:
         bookmarks = I.bookmarks(limit=BOOKMARK_LIMIT)
-    except Exception as e:
-        flash(f"❌ 获取书签失败：{e}", "danger")
+    except Exception:
+        logging.exception("Failed to fetch Instapaper bookmarks")
+        flash("❌ 获取书签失败，请稍后重试", "danger")
         bookmarks = []
 
     return render_template("instapaper.html", list=bookmarks)
