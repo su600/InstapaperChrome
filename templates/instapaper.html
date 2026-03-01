@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instapaper 书签列表</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          integrity="sha384-ENjdO4Dr2bkBIFxQpeoA6VJK4aCk1T9/6b+iIv6d0vvBU5asJ5STd6d3KvN05gR9"
+          crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 860px;
+            padding-top: 30px;
+            padding-bottom: 40px;
+        }
+        .bookmark-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+            margin-bottom: 12px;
+            padding: 14px 16px;
+        }
+        .bookmark-title a {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #222;
+            text-decoration: none;
+        }
+        .bookmark-title a:hover {
+            color: #0d6efd;
+            text-decoration: underline;
+        }
+        .bookmark-url {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .action-buttons form {
+            display: inline;
+        }
+        .badge-count {
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+            📚 Instapaper 书签
+            <span class="badge bg-secondary badge-count">{{ list | length }}</span>
+        </h4>
+        <form method="get" action="/">
+            <button type="submit" class="btn btn-outline-primary btn-sm">🔄 刷新</button>
+        </form>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, msg in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% if list %}
+        {% for item in list %}
+        <div class="bookmark-card">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="bookmark-title">
+                        <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title or item.url }}</a>
+                    </div>
+                    <div class="bookmark-url" title="{{ item.url }}">{{ item.url }}</div>
+                </div>
+                <div class="col-auto action-buttons">
+                    <form method="post" action="/">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="id" value="{{ item.bookmark_id }}">
+                        <button type="submit" name="Action" value="Star"
+                                class="btn btn-warning btn-sm me-1"
+                                title="收藏并存档">⭐ 收藏</button>
+                        <button type="submit" name="Action" value="Archive"
+                                class="btn btn-secondary btn-sm me-1"
+                                title="存档">📂 存档</button>
+                        <button type="submit" name="Action" value="Delete"
+                                class="btn btn-danger btn-sm"
+                                title="删除"
+                                onclick="return confirm('确定要删除这条书签吗？')">🗑 删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center text-muted mt-5">
+            <p>📭 暂无书签，快去 Instapaper 添加吧！</p>
+        </div>
+    {% endif %}
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-q2dyQayJf9c1S8V6wCV3GbRJXDZLc8JMBwwex5WH49qqG7heqPT+PDvVAGjGVC7h"
+        crossorigin="anonymous"></script>
+</body>
+</html>
