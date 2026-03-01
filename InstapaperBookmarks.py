@@ -30,8 +30,9 @@ _missing = [
     ] if not val
 ]
 if _missing:
-    print(f"ERROR: Missing required environment variables: {', '.join(_missing)}", file=sys.stderr)
-    sys.exit(1)
+    message = f"Missing required environment variables: {', '.join(_missing)}"
+    print(f"ERROR: {message}", file=sys.stderr)
+    raise RuntimeError(message)
 
 I = instapaper.Instapaper(CONSUMER_KEY, CONSUMER_SECRET)
 I.login(USERNAME, PASSWORD)
